@@ -1,0 +1,49 @@
+name: Build Skart APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java (required for Android build)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Initialize Bubblewrap project
+        run: |
+          mkdir apk-build && cd apk-build
+          bubblewrap init --manifest https://${{ secrets.VERCEL_URL }}/manifest.json --skipPwaValidation
+        env:
+          BUBBLEWRAP_SKIP_UPDATE_CHECK: true
+
+      - name: Build APK
+        run: |
+          cd apk-build
+          bubblewrap build --skipPwaValidation
+        env:
+          BUBBLEWRAP_SKIP_UPDATE_CHECK: true
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: skart-release-apk
+          path: apk-build/app-release-signed.apk
+          retention-days: 30
