@@ -13,11 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -31,12 +26,7 @@ jobs:
         run: |
           npm install -g @bubblewrap/cli@latest
           mkdir -p ~/.bubblewrap
-          cat > ~/.bubblewrap/config.json << EOF
-          {
-            "jdkPath": "$JAVA_HOME",
-            "androidSdkPath": "$ANDROID_SDK_ROOT"
-          }
-          EOF
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
 
       - name: Generate signing key
         run: |
@@ -50,52 +40,11 @@ jobs:
             -keypass skart123 \
             -dname "CN=Skart, OU=App, O=Skart, L=Unknown, S=Unknown, C=CH"
 
-      - name: Create twa-manifest.json
+      - name: Init and Build APK
         run: |
-          cat > twa-manifest.json << 'EOF'
-          {
-            "packageId": "app.vercel.skart_virid",
-            "host": "skart-virid.vercel.app",
-            "name": "Skart",
-            "launcherName": "Skart",
-            "display": "standalone",
-            "orientation": "portrait",
-            "themeColor": "#0f0f0f",
-            "navigationColor": "#0c0c0e",
-            "navigationColorDark": "#0c0c0e",
-            "navigationDividerColor": "#0c0c0e",
-            "navigationDividerColorDark": "#0c0c0e",
-            "backgroundColor": "#0c0c0e",
-            "enableNotifications": false,
-            "startUrl": "/",
-            "iconUrl": "https://skart-virid.vercel.app/icon-512.png",
-            "maskableIconUrl": "https://skart-virid.vercel.app/icon-512.png",
-            "monochromeIconUrl": "https://skart-virid.vercel.app/icon-512.png",
-            "appVersion": "1",
-            "appVersionName": "1.0.0",
-            "signingKey": {
-              "path": "../skart.keystore",
-              "alias": "skart"
-            },
-            "additionalTrustedOrigins": [],
-            "retainedBundles": [],
-            "enableSiteSettingsShortcut": true,
-            "isChromeOSOnly": false,
-            "isMetaQuest": false,
-            "fullScopeUrl": "https://skart-virid.vercel.app/",
-            "minSdkVersion": 19,
-            "targetSdkVersion": 34,
-            "generatorApp": "bubblewrap-cli",
-            "webManifestUrl": "https://skart-virid.vercel.app/manifest.json",
-            "fallbackType": "customtabs",
-            "features": {},
-            "alphaDependencies": false,
-            "enableSidecar": false
-          }
-          EOF
-
-      - name: Build APK
-        run: echo "n" | bubblewrap build --skipPwaValidation
+          mkdir apk-build && cd apk-build
+          echo "n" | bubblewrap init --manifest https://skart-virid.vercel.app/manifest.json --skipPwaValidation
+          echo "n" | bubblewrap build --skipPwaValidation
         env:
           BUBBLEWRAP_SKIP_UPDATE_CHECK: true
           BUBBLEWRAP_KEYSTORE_PASSWORD: skart123
@@ -105,7 +54,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: skart-release-apk
-          path: app-release-signed.apk
+          path: apk-build/app-release-signed.apk
           retention-days: 30
 
       - name: Print SHA256 fingerprint
