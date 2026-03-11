@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="description" content="Skart – Your smart shopping list, powered by SKR" />
+  <title>Skart</title>
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0c0e;
+      --surface: #161618;
+      --surface2: #1e1e22;
+      --border: #2a2a30;
+      --accent: #9FE870;
+      --accent2: #4af0c4;
+      --text: #f0f0f2;
+      --muted: #6b6b78;
+      --danger: #ff5c5c;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.5;
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 0 120px;
+      min-height: 100dvh;
+    }
+
+    /* HEADER */
+    header {
+      padding: 48px 24px 24px;
+      position: sticky;
+      top: 0;
+      background: linear-gradient(to bottom, var(--bg) 80%, transparent);
+      z-index: 10;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 38px;
+      letter-spacing: -2px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .stats-pill {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.05em;
+      margin-top: 6px;
+    }
+
+    .stats-pill b {
+      color: var(--accent);
+    }
+
+    .progress-bar {
+      height: 2px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* LIST SELECTOR */
+    .list-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 0 24px 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .list-tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      flex-shrink: 0;
+      padding: 7px 14px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #000;
+      font-weight: 500;
+    }
+
+    .tab .count {
+      background: rgba(0,0,0,0.2);
+      border-radius: 100px;
+      padding: 1px 6px;
+      font-size: 10px;
+    }
+
+    .tab:not(.active) .count {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .tab-add {
+      color: var(--accent);
+      border-color: var(--accent);
+      opacity: 0.6;
+    }
+
+    /* INPUT */
+    .input-area {
+      padding: 0 24px 16px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px 4px 4px 16px;
+      transition: border-color 0.2s;
+    }
+
+    .input-row:focus-within {
+      border-color: var(--accent);
+    }
+
+    .input-row input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      padding: 10px 0;
+    }
+
+    .input-row input::placeholder {
+      color: var(--muted);
+    }
+
+    .qty-input {
+      width: 48px !important;
+      flex: none !important;
+      text-align: center;
+      border-left: 1px solid var(--border) !important;
+      padding: 10px 8px !important;
+      color: var(--muted) !important;
+    }
+
+    .add-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+
+    .add-btn:active { transform: scale(0.92); }
+
+    .add-btn svg { width: 18px; height: 18px; }
+
+    /* CATEGORY BADGE */
+    .cat-row {
+      display: flex;
+      gap: 6px;
+      padding: 0 24px 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .cat-row::-webkit-scrollbar { display: none; }
+
+    .cat-badge {
+      flex-shrink: 0;
+      padding: 5px 12px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .cat-badge.selected {
+      border-color: currentColor;
+    }
+
+    /* SECTION */
+    .section-label {
+      padding: 4px 24px 8px;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ITEMS */
+    .items-list {
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .item.checked {
+      opacity: 0.45;
+      border-color: transparent;
+    }
+
+    .item.checked .item-name {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .checkbox {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      background: transparent;
+    }
+
+    .item.checked .checkbox {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .checkmark {
+      display: none;
+    }
+
+    .item.checked .checkmark {
+      display: block;
+    }
+
+    .item-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-name {
+      font-size: 14px;
+      font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color 0.2s;
+    }
+
+    .item-meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 2px;
+    }
+
+    .item-qty {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .item-cat {
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .item-delete {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      opacity: 0;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .item:hover .item-delete,
+    .item:active .item-delete {
+      opacity: 1;
+    }
+
+    .item-delete:hover {
+      background: rgba(255,92,92,0.1);
+      color: var(--danger);
+    }
+
+    /* EMPTY STATE */
+    .empty {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--muted);
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+
+    .empty p {
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* BOTTOM BAR */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0; right: 0;
+      padding: 12px 24px 28px;
+      background: linear-gradient(to top, var(--bg) 60%, transparent);
+      display: flex;
+      gap: 10px;
+    }
+
+    .clear-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .clear-btn:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .share-btn {
+      flex: 2;
+      padding: 14px;
+      border-radius: var(--radius);
+      background: var(--accent);
+      border: none;
+      color: #000;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: -0.3px;
+    }
+
+    .share-btn:active { transform: scale(0.97); }
+
+    /* DIVIDER between open/done */
+    .items-divider {
+      padding: 12px 24px 4px;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .items-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 10px 20px;
+      font-size: 12px;
+      color: var(--text);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-top">
+        <div class="logo">sk<span>art</span></div>
+        <div class="stats-pill"><b id="openCount">0</b> open · <b id="doneCount">0</b> done</div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </header>
+
+    <!-- LIST TABS -->
+    <div class="list-tabs" id="listTabs">
+      <button class="tab active" data-list="0">
+        🛒 Groceries <span class="count" id="tab0count">0</span>
+      </button>
+      <button class="tab" data-list="1">
+        🏠 Household <span class="count" id="tab1count">0</span>
+      </button>
+      <button class="tab" data-list="2">
+        💊 Pharmacy <span class="count" id="tab2count">0</span>
+      </button>
+      <button class="tab tab-add" id="addListBtn">+ List</button>
+    </div>
+
+    <!-- INPUT -->
+    <div class="input-area">
+      <div class="input-row">
+        <input type="text" id="itemInput" placeholder="Add item…" autocomplete="off" />
+        <input type="text" id="qtyInput" class="qty-input" placeholder="Menge" />
+        <button class="add-btn" id="addBtn" onclick="addItem()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- CATEGORY -->
+    <div class="cat-row" id="catRow">
+      <button class="cat-badge selected" data-cat="" style="border-color: #9FE870; color: #9FE870">All</button>
+      <button class="cat-badge" data-cat="🥦 Veggies" style="--c: #86efac">🥦 Veggies</button>
+      <button class="cat-badge" data-cat="🍖 Meat" style="--c: #fca5a5">🍖 Meat</button>
+      <button class="cat-badge" data-cat="🧴 Care" style="--c: #93c5fd">🧴 Care</button>
+      <button class="cat-badge" data-cat="🧃 Drinks" style="--c: #fde68a">🧃 Drinks</button>
+      <button class="cat-badge" data-cat="🧹 Household" style="--c: #d8b4fe">🧹 Household</button>
+      <button class="cat-badge" data-cat="🥖 Bakery" style="--c: #fdba74">🥖 Bakery</button>
+    </div>
+
+    <!-- ITEMS -->
+    <div id="itemContainer"></div>
+
+    <div class="bottom-bar">
+      <button class="clear-btn" onclick="clearChecked()">Remove done</button>
+      <button class="share-btn" onclick="shareList()">📋 Share</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // STATE
+    const LISTS = [
+      { name: '🛒 Groceries' },
+      { name: '🏠 Household' },
+      { name: '💊 Pharmacy' },
+    ];
+
+    let state = {
+      currentList: 0,
+      selectedCat: '',
+      items: JSON.parse(localStorage.getItem('markt_items') || '[]'),
+      lists: JSON.parse(localStorage.getItem('markt_lists') || JSON.stringify(LISTS)),
+    };
+
+    function save() {
+      localStorage.setItem('markt_items', JSON.stringify(state.items));
+      localStorage.setItem('markt_lists', JSON.stringify(state.lists));
+    }
+
+    // AUTO-CATEGORY DETECTION
+    const CAT_KEYWORDS = {
+      '🍖 Meat': [
+        'schnitzel','steak','mince','mincemeat','sausage','salami','bacon','ham',
+        'chicken','turkey','beef','pork','lamb','meat','bratwurst','fillet',
+        'spare ribs','ribs','gyros','kebab','chorizo','mortadella','pepperoni',
+        'hotdog','hot dog','drumstick','wings','prosciutto'
+      ],
+      '🥦 Veggies': [
+        'salad','lettuce','tomato','tomatoes','cucumber','pepper','onion','garlic',
+        'carrot','potato','potatoes','broccoli','cauliflower','spinach','zucchini',
+        'eggplant','leek','celery','radish','beetroot','corn','peas','beans',
+        'lentils','chickpeas','mushroom','fennel','asparagus','artichoke',
+        'avocado','rocket','arugula','kale','cabbage','courgette'
+      ],
+      '🧃 Drinks': [
+        'water','juice','cola','fanta','sprite','lemonade','soda','beer','wine',
+        'champagne','prosecco','whiskey','vodka','rum','gin','aperol','coffee',
+        'tea','milk','cocoa','smoothie','energy drink','red bull','iced tea',
+        'orange juice','apple juice','kombucha','oat milk','almond milk'
+      ],
+      '🥖 Bakery': [
+        'bread','roll','baguette','toast','ciabatta','pretzel','croissant',
+        'bagel','muffin','sourdough','rye bread','white bread','wholegrain',
+        'butter','margarine','cream cheese','quark','yogurt','yoghurt','cheese',
+        'mozzarella','parmesan','gouda','emmental','brie','camembert','eggs','egg'
+      ],
+      '🧴 Care': [
+        'shampoo','shower gel','soap','toothpaste','toothbrush','deodorant','deo',
+        'perfume','lotion','cream','sunscreen','lipstick','makeup','mascara',
+        'concealer','foundation','cotton buds','tampons','pads','razor',
+        'aftershave','condoms','plaster','bandage','ibuprofen','paracetamol',
+        'aspirin','vitamins','tablets','medicine','painkiller'
+      ],
+      '🧹 Household': [
+        'detergent','washing powder','dish soap','dishwasher tablets','cleaner',
+        'sponge','cloth','kitchen roll','toilet paper','bin bags','garbage bags',
+        'foil','cling film','baking paper','tape','matches','candles','light bulb',
+        'batteries','fabric softener','baking powder','salt','pepper','sugar',
+        'flour','oil','olive oil','vinegar','ketchup','mustard','mayonnaise'
+      ],
+    };
+
+    function detectCategory(name) {
+      const lower = name.toLowerCase();
+      for (const [cat, keywords] of Object.entries(CAT_KEYWORDS)) {
+        if (keywords.some(kw => lower.includes(kw))) return cat;
+      }
+      return '';
+    }
+
+    // ADD ITEM
+    function addItem() {
+      const nameEl = document.getElementById('itemInput');
+      const qtyEl = document.getElementById('qtyInput');
+      const name = nameEl.value.trim();
+      const qty = qtyEl.value.trim() || '1';
+      if (!name) { nameEl.focus(); return; }
+
+      // Auto-detect category if none manually selected
+      const cat = state.selectedCat || detectCategory(name);
+
+      state.items.unshift({
+        id: Date.now(),
+        name,
+        qty,
+        cat,
+        list: state.currentList,
+        done: false,
+        ts: Date.now(),
+      });
+
+      nameEl.value = '';
+      qtyEl.value = '';
+      nameEl.focus();
+      save();
+      render();
+      showToast('✓ ' + name + ' added');
+    }
+
+    document.getElementById('itemInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addItem();
+    });
+
+    // TOGGLE
+    function toggle(id) {
+      const item = state.items.find(i => i.id === id);
+      if (item) { item.done = !item.done; save(); render(); }
+    }
+
+    // DELETE
+    function deleteItem(id, e) {
+      e.stopPropagation();
+      state.items = state.items.filter(i => i.id !== id);
+      save();
+      render();
+    }
+
+    // CLEAR CHECKED
+    function clearChecked() {
+      const before = state.items.length;
+      state.items = state.items.filter(i => !(i.done && i.list === state.currentList));
+      const removed = before - state.items.length;
+      save();
+      render();
+      if (removed > 0) showToast(removed + ' item(s) removed');
+    }
+
+    // SHARE
+    function shareList() {
+      const items = state.items.filter(i => i.list === state.currentList && !i.done);
+      if (!items.length) { showToast('List is empty!'); return; }
+      const text = state.lists[state.currentList].name + '\n\n' +
+        items.map(i => `• ${i.qty !== '1' ? i.qty + '× ' : ''}${i.name}`).join('\n');
+
+      if (navigator.share) {
+        navigator.share({ title: 'Shopping List', text }).catch(() => {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => showToast('📋 Copied to clipboard'));
+      }
+    }
+
+    // CAT SELECT
+    document.getElementById('catRow').addEventListener('click', e => {
+      const btn = e.target.closest('.cat-badge');
+      if (!btn) return;
+      state.selectedCat = btn.dataset.cat;
+      document.querySelectorAll('.cat-badge').forEach(b => {
+        const c = b.style.getPropertyValue('--c') || '#9FE870';
+        b.classList.toggle('selected', b.dataset.cat === state.selectedCat);
+        b.style.borderColor = b.classList.contains('selected') ? (b.style.getPropertyValue('--c') || '#9FE870') : '';
+        b.style.color = b.classList.contains('selected') ? (b.style.getPropertyValue('--c') || '#9FE870') : '';
+      });
+    });
+
+    // LIST TABS
+    document.getElementById('listTabs').addEventListener('click', e => {
+      const tab = e.target.closest('.tab');
+      if (!tab || tab.id === 'addListBtn') return;
+      state.currentList = parseInt(tab.dataset.list);
+      document.querySelectorAll('.tab:not(.tab-add)').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      render();
+    });
+
+    document.getElementById('addListBtn').addEventListener('click', () => {
+      const name = prompt('Name of new list:');
+      if (!name) return;
+      state.lists.push({ name: '📝 ' + name });
+      const idx = state.lists.length - 1;
+      const tabs = document.getElementById('listTabs');
+      const newTab = document.createElement('button');
+      newTab.className = 'tab';
+      newTab.dataset.list = idx;
+      newTab.innerHTML = `${name} <span class="count" id="tab${idx}count">0</span>`;
+      tabs.insertBefore(newTab, document.getElementById('addListBtn'));
+      state.currentList = idx;
+      document.querySelectorAll('.tab:not(.tab-add)').forEach(t => t.classList.remove('active'));
+      newTab.classList.add('active');
+      save();
+      render();
+    });
+
+    // TOAST
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // RENDER
+    function render() {
+      const container = document.getElementById('itemContainer');
+      const allListItems = state.items.filter(i => i.list === state.currentList);
+      const open = allListItems.filter(i => !i.done);
+      const done = allListItems.filter(i => i.done);
+      const total = allListItems.length;
+      const doneCount = done.length;
+
+      // Stats
+      document.getElementById('openCount').textContent = open.length;
+      document.getElementById('doneCount').textContent = doneCount;
+      document.getElementById('progressFill').style.width =
+        total > 0 ? Math.round((doneCount / total) * 100) + '%' : '0%';
+
+      // Tab counts
+      state.lists.forEach((_, idx) => {
+        const el = document.getElementById('tab' + idx + 'count');
+        if (el) el.textContent = state.items.filter(i => i.list === idx && !i.done).length;
+      });
+
+      // Items
+      let html = '';
+
+      if (!open.length && !done.length) {
+        html = `<div class="empty">
+          <div class="empty-icon">🛒</div>
+          <p>Nothing on the list yet.<br/>Add your first item above!</p>
+        </div>`;
+      } else {
+        if (open.length) {
+          html += '<div class="items-list">';
+          open.forEach(item => { html += renderItem(item); });
+          html += '</div>';
+        }
+        if (done.length) {
+          html += `<div class="items-divider">done (${done.length})</div>`;
+          html += '<div class="items-list">';
+          done.forEach(item => { html += renderItem(item); });
+          html += '</div>';
+        }
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderItem(item) {
+      const catColor = getCatColor(item.cat);
+      return `<div class="item ${item.done ? 'checked' : ''}" onclick="toggle(${item.id})">
+        <div class="checkbox">
+          <svg class="checkmark" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1.5,6 4.5,9 10.5,3"/>
+          </svg>
+        </div>
+        <div class="item-content">
+          <div class="item-name">${escHtml(item.name)}</div>
+          <div class="item-meta">
+            ${item.qty && item.qty !== '1' ? `<span class="item-qty">${escHtml(item.qty)}×</span>` : ''}
+            ${item.cat ? `<span class="item-cat" style="border-color:${catColor};color:${catColor}">${item.cat}</span>` : ''}
+          </div>
+        </div>
+        <button class="item-delete" onclick="deleteItem(${item.id}, event)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>`;
+    }
+
+    function getCatColor(cat) {
+      const map = {
+        '🥦 Veggies': '#86efac', '🍖 Meat': '#fca5a5',
+        '🧴 Care': '#93c5fd', '🧃 Drinks': '#fde68a',
+        '🧹 Household': '#d8b4fe', '🥖 Bakery': '#fdba74',
+      };
+      return map[cat] || '#6b6b78';
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    render();
+  </script>
+</body>
+</html>
