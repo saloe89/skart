@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.skart_virid.twa",
+    "sha256_cert_fingerprints": ["28:6A:42:5A:B1:A7:18:F7:1F:54:FA:C7:AF:9F:51:EE:A4:51:3E:2E:92:D7:D8:71:5D:EC:39:66:8C:A6:91:15"]
+  }
+}]
