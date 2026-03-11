@@ -24,8 +24,21 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli@latest
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Bubblewrap and pre-configure
+        run: |
+          npm install -g @bubblewrap/cli@latest
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json << EOF
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_SDK_ROOT"
+          }
+          EOF
+          echo "Config:"
+          cat ~/.bubblewrap/config.json
 
       - name: Generate signing key
         run: |
@@ -84,7 +97,7 @@ jobs:
           EOF
 
       - name: Build APK
-        run: printf "n\n/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.18-8/x64\n\n\n\n\n\n\n\n\n" | bubblewrap build --skipPwaValidation
+        run: bubblewrap build --skipPwaValidation
         env:
           BUBBLEWRAP_SKIP_UPDATE_CHECK: true
           BUBBLEWRAP_KEYSTORE_PASSWORD: skart123
